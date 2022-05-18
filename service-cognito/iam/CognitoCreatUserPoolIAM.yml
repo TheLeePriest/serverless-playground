@@ -1,0 +1,7 @@
+CognitoCreatUserPoolIAM:
+  Effect: Allow
+  Action:
+    - cognito-idp:CreateUserPool
+    - cognito-idp:CreateUserPoolClient
+#  Resource: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:service-users-${self:provider.stage}-createUserPool
+  Resource: "*"

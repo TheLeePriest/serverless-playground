@@ -1,0 +1,49 @@
+service: service-users
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  memorySize: 256
+  region: eu-west-2
+  stage: ${opt:stage, 'dev'}
+  environment:
+    STAGE: ${opt:stage, 'dev'}
+  iamRoleStatements:
+    - ${file(iam/CognitoAuthIAM.yml):CognitoAuthIAM}
+    - ${file(iam/CognitoCreatUserPoolIAM.yml):CognitoCreatUserPoolIAM}
+
+resources:
+  Resources:
+    CognitoUserPool: ${file(resources/UsersCognitoPool.yml):UsersCognitoPool}
+    CognitoUserPoolClient: ${file(resources/UsersCognitoClient.yml):UsersCognitoClient}
+  Outputs:
+    CognitoArn:
+      Description: The ARN of the cognito user pool
+      Value:
+        'Fn::GetAtt':
+          - CognitoUserPool
+          - Arn
+      Export:
+        Name:
+          'Fn::Sub': 'WebsiteUserPoolArn-${self:provider.stage}'
+
+functions:
+  createUser:
+    handler: src/handlers/createUser.handler
+    events:
+      - http:
+          method: POST
+          path: /v1/user
+
+custom:
+  CreateUser:
+    name: !Ref CreateUser
+    arn: !GetAtt CreateUser.Arn
+  bundle:
+    linting: false

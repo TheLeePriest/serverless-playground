@@ -1,0 +1,8 @@
+CognitoAuthIAM:
+  Effect: Allow
+  Action:
+    - cognito-idp:AdminInitiateAuth
+    - cognito-idp:AdminCreateUser
+    - cognito-idp:AdminSetUserPassword
+    - cognito-idp:CreateUserPool
+  Resource: "*"

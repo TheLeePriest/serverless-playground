@@ -1,0 +1,79 @@
+service: service-website
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  memorySize: 256
+  region: eu-west-2
+  stage: ${opt:stage, 'dev'}
+  configEnv: ${opt:configEnv, opt:stage, "dev"}
+  environment:
+    WEBSITES_TABLE_NAME: ${self:custom.WebsitesTable.name}
+    STAGE: ${opt:stage, 'dev'}
+  iamRoleStatements:
+    - ${file(iam/WebsitesTableIAM.yml):WebsitesTableIAM}
+    - Effect: Allow
+      Action:
+      - events:PutEvents
+      Resource: "*"
+
+resources:
+  Resources:
+    WebsitesTable: ${file(resources/WebsitesTable.yml):WebsitesTable}
+    ApiGatewayAuthorizer:
+      DependsOn:
+        - ApiGatewayRestApi
+      Type: AWS::ApiGateway::Authorizer
+      Properties:
+        Name: ${self:service}-authorizer-${self:provider.stage}
+        Type: COGNITO_USER_POOLS
+        IdentitySource: method.request.header.Authorization
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ProviderARNs:
+          - Fn::ImportValue: WebsiteUserPoolArn-${self:provider.configEnv}
+
+functions:
+  createWebsite:
+    handler: src/handlers/createWebsite.handler
+    events:
+      - http:
+          method: POST
+          path: /v1/createWebsite
+          cors: true
+          private: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+            scopes:
+              - Website/website.create
+  getWebsiteByClientName:
+    handler: src/handlers/getWebsiteBySiteName.handler
+    events:
+      - http:
+          method: POST
+          path: /v1/getWebsiteBySiteName
+          cors: true
+          private: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer
+            scopes:
+              - Website/website.get
+
+
+
+custom:
+  WebsitesTable:
+    name: !Ref WebsitesTable
+    arn: !GetAtt WebsitesTable.Arn
+  bundle:
+    linting: false

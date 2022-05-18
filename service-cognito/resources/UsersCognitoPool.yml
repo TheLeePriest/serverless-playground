@@ -1,0 +1,14 @@
+UsersCognitoPool:
+  Type: AWS::Cognito::UserPool
+  Properties:
+    MfaConfiguration: OFF
+    UserPoolName: users-${self:provider.stage}
+    UsernameAttributes:
+      - email
+    Policies:
+      PasswordPolicy:
+        MinimumLength: 6
+        RequireLowercase: False
+        RequireNumbers: True
+        RequireSymbols: False
+        RequireUppercase: True
